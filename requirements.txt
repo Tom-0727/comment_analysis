@@ -1,0 +1,3 @@
+FlagEmbedding
+pandas
+openai
