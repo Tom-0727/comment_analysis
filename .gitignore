@@ -170,3 +170,5 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 openai_keys.yaml
+results/
+buffer/
