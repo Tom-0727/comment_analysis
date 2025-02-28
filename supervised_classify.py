@@ -70,16 +70,18 @@ def infer(robot, dfs, files):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="一个简单的 argparse 示例")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--api_key_yaml_path", type=str, required=True)
     parser.add_argument("--folder_path", type=str, required=True)
+    parser.add_argument("--model", type=str, required=True)
     args = parser.parse_args()
 
     dfs, files = read_xlsx(args.folder_path)
-    with open("openai_keys.yaml", "r", encoding="utf-8") as file:
+    with open(args.api_key_yaml_path, "r", encoding="utf-8") as file:
         data = yaml.safe_load(file)
 
-    my_key = data['tom']['key']
-    robot = CommentAnalysisAgent(openai_key=my_key, model="gpt-4o-mini-2024-07-18")  # gpt-4o-2024-08-06  gpt-4o-mini-2024-07-18
+    my_key = data['openai']['key']
+    robot = CommentAnalysisAgent(openai_key=my_key, model=args.model)  # gpt-4o-2024-08-06  gpt-4o-mini-2024-07-18
 
     infer(robot, dfs, files)
 
