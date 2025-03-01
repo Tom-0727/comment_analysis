@@ -12,7 +12,8 @@ def read_csv(testset_path, version='default'):
     # 读取测试集
     df = pd.read_csv(testset_path, sep='\t')
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-    df = df.drop(columns=['version', 'v1', 'v1_4o', 'v1_4o_mini'], inplace=True)
+    #df.drop(columns=['version', 'v1', 'v1_4o', 'v1_4o_mini'], inplace=True)
+    
     df[version] = ''
     print(df.columns)
     return df
