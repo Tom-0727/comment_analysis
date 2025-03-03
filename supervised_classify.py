@@ -1,10 +1,11 @@
 import os
+import re
 import yaml
 import argparse
 import pandas as pd
 
 from tqdm import tqdm
-from modules.agent import CommentAnalysisAgent
+from modules.agent import CommentAnalysisAgent, CommentTranslateAgent
 
 
 
@@ -12,27 +13,17 @@ def read_xlsx(folder_path):
     dfs = []
     files = []
     files_lis = os.listdir(folder_path)
-    have_done = []
-
-    for file in files_lis:
-        if file.endswith("_done.xlsx"):
-                have_done.append(file.replace("_done.xlsx", ''))
 
     for file in files_lis:
         if file.endswith(".xlsx"):
-            if file.endswith("_done.xlsx"):
-                have_done.append(file.replace("_done.xlsx", ''))
-                continue
-            
-            if file.replace('.xlsx', '') in have_done:
-                continue
-
             file_path = os.path.join(folder_path, file)
             df = pd.read_excel(file_path, engine="openpyxl")  # 读取文件
             print(f"读取文件: {file}")
 
             # ----
-            df['origin_outcome'] = ''
+            df['中文评论'] = ''
+            df['分析结果'] = ''
+            df['提取结果'] = ''
 
             dfs.append(df)
             files.append(file_path)
@@ -43,7 +34,15 @@ def save_xlsx(df):
     pass
 
 
-def infer(robot, dfs, files):
+def extract_output(text):
+    pattern = r'\{.*?\}'
+    matches = re.findall(pattern, text, re.DOTALL)
+
+    matches = [match.replace('\n', '') for match in matches]
+    return matches
+
+
+def infer(comment_analyzor, comment_translator, dfs, files):
 
     for j in range(len(dfs)):
         df = dfs[j]
@@ -54,17 +53,22 @@ def infer(robot, dfs, files):
             comment = df.iloc[i]['内容']
             if not isinstance(comment, str):
                 continue
-            output = robot.comment_analyze(comment)
-            df.loc[i, 'origin_outcome'] = output
-            try:
-                output = eval(output)
-                # 遍历 output，将数据存入 DataFrame
-                for key, value in output.items():
-                    if key not in df.columns:  # 如果 DataFrame 里没有这个列，就新建
-                        df[key] = ''  # 先创建列，填充 NaN
-                    df.at[i, key] = value  # 填充数据
-            except:
-                pass
+
+            # 翻译评论
+            translated_comment = comment_translator.translate(comment)
+            df.loc[i, '中文评论'] = translated_comment
+            #print(f"原: {comment}\n翻译评论: {translated_comment}")
+
+            # 分析评论
+            output = comment_analyzor.comment_analyze(translated_comment)
+            df.loc[i, '分析结果'] = output
+            #print(f"分析结果: {output}")
+
+            # 提取结果
+            extracted_output = extract_output(output)
+            df.loc[i, '提取结果'] = ''.join(extracted_output)
+            #print(f"提取结果: {extracted_output}")
+
         df.to_excel(file.replace('.xlsx', '_done.xlsx'), index=False, engine="openpyxl")
             
 
@@ -81,7 +85,7 @@ if __name__ == '__main__':
         data = yaml.safe_load(file)
 
     my_key = data['openai']['key']
-    robot = CommentAnalysisAgent(openai_key=my_key, model=args.model)  # gpt-4o-2024-08-06  gpt-4o-mini-2024-07-18
-
-    infer(robot, dfs, files)
+    comment_analyzor = CommentAnalysisAgent(openai_key=my_key, model=args.model)
+    comment_translator = CommentTranslateAgent(openai_key=my_key, model=args.model)
+    infer(comment_analyzor=comment_analyzor, comment_translator=comment_translator, dfs=dfs, files=files)
 
