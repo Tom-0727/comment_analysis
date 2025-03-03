@@ -41,3 +41,11 @@ MAPPING = {
     "Shipment Condition": "运输货品完好度"
 
 }
+
+ENGLISH_POINTS = MAPPING.keys()
+CHINESE_POINTS = MAPPING.values()
+
+
+if __name__ == '__main__':
+    print(ENGLISH_POINTS)
+    print(CHINESE_POINTS)

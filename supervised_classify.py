@@ -21,8 +21,10 @@ def read_xlsx(folder_path):
             print(f"读取文件: {file}")
 
             # ----
+            df['英文评论'] = ''
             df['中文评论'] = ''
             df['分析结果'] = ''
+            df['中文分析'] = ''
             df['提取结果'] = ''
 
             dfs.append(df)
@@ -30,8 +32,9 @@ def read_xlsx(folder_path):
     return dfs, files
 
 
-def save_xlsx(df):
-    pass
+def save_csv(df, file_name, save_path):
+    save_path = os.path.join(save_path, file_name)
+    df.to_csv(save_path, index=False, sep='\t')
 
 
 def extract_output(text):
@@ -42,7 +45,7 @@ def extract_output(text):
     return matches
 
 
-def infer(comment_analyzor, comment_translator, dfs, files):
+def infer(comment_analyzor, comment_translator, dfs, files, save_path):
 
     for j in range(len(dfs)):
         df = dfs[j]
@@ -53,23 +56,29 @@ def infer(comment_analyzor, comment_translator, dfs, files):
             comment = df.iloc[i]['内容']
             if not isinstance(comment, str):
                 continue
+            
+            # 分析评论
+            analysis = comment_analyzor.comment_analyze(comment)
+            df.loc[i, '分析结果'] = analysis
+            #print(f"分析结果: {analysis}")
+
+            # 提取结果
+            extracted_output = extract_output(analysis)
+            df.loc[i, '提取结果'] = ''.join(extracted_output)
+            #print(f"提取结果: {extracted_output}")
 
             # 翻译评论
             translated_comment = comment_translator.translate(comment)
             df.loc[i, '中文评论'] = translated_comment
             #print(f"原: {comment}\n翻译评论: {translated_comment}")
 
-            # 分析评论
-            output = comment_analyzor.comment_analyze(translated_comment)
-            df.loc[i, '分析结果'] = output
-            #print(f"分析结果: {output}")
-
-            # 提取结果
-            extracted_output = extract_output(output)
-            df.loc[i, '提取结果'] = ''.join(extracted_output)
-            #print(f"提取结果: {extracted_output}")
-
-        df.to_excel(file.replace('.xlsx', '_done.xlsx'), index=False, engine="openpyxl")
+            # 翻译分析
+            translated_analysis = comment_translator.translate(analysis)
+            df.loc[i, '中文分析'] = translated_analysis
+            #print(f"翻译分析: {translated_analysis}")
+        
+        save_csv(df=df, file_name=file.replace('.xlsx', '.csv'), save_path=save_path)
+        
             
 
 
@@ -77,6 +86,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--api_key_yaml_path", type=str, required=True)
     parser.add_argument("--folder_path", type=str, required=True)
+    parser.add_argument("--save_path", type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
     args = parser.parse_args()
 
@@ -87,5 +97,5 @@ if __name__ == '__main__':
     my_key = data['openai']['key']
     comment_analyzor = CommentAnalysisAgent(openai_key=my_key, model=args.model)
     comment_translator = CommentTranslateAgent(openai_key=my_key, model=args.model)
-    infer(comment_analyzor=comment_analyzor, comment_translator=comment_translator, dfs=dfs, files=files)
+    infer(comment_analyzor=comment_analyzor, comment_translator=comment_translator, dfs=dfs, files=files, save_path=args.save_path)
 
