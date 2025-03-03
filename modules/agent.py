@@ -42,3 +42,33 @@ Now do: comment='''
             ]
         )
         return completion.choices[0].message.content
+    
+
+
+class TranslationAgent:
+    def __init__(self, openai_key, model="gpt-4o-2024-08-06"):
+        self.client = OpenAI(api_key=openai_key)
+        self.model = model
+
+    def preprocess(self, text):
+        text = text.replace('\n', ' ')
+        text = text.replace('"', "")
+        return text
+    
+    def translate(self, text):
+        text = self.preprocess(text)
+        task_text =  "下面的英文发生在商品评论的场景:\n" + text + "\n将上面的英文原样翻译为中文："
+        response = self.one_shot(task_text)
+
+        return response
+    
+    def one_shot(self, text):
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            store=True,
+            temperature=0,
+            messages=[
+                {"role": "user", "content": text}
+            ]
+        )
+        return completion.choices[0].message.content
