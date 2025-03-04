@@ -25,4 +25,4 @@ def merge_xlsx(folder_path, output_file):
 
 
 if __name__ == '__main__':
-    merge_xlsx(folder_path='./results/v2_2_comment_analysis', output_file='./results/final_outcome/v2_2_outcome.xlsx')
+    merge_xlsx(folder_path='./results/v3_comment_analysis', output_file='./results/final_outcome/v2_3_outcome.xlsx')
