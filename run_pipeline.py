@@ -5,7 +5,7 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 
-from modules.agent import OpenAICommentAnalysisAgent
+from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
 
 
 
@@ -30,24 +30,29 @@ def extract_output(text):
     return matches
 
 
-def openai_infer(comment_analyzor, dataframe, save_path):
+def infer(comment_analyzor, dataframe, save_path):
     df = dataframe
+
+    if not os.path.exists(save_path):
+        dataframe.iloc[:0].to_csv(save_path, sep='\t', index=False)
 
     length = len(dataframe) 
     for i in tqdm(range(length)):
         comment = df.iloc[i]['内容']
         if not isinstance(comment, str):
             continue
-        df.loc[i, '英文评论'] = comment
+        
+        row = dataframe.iloc[[i]].copy()
+        row.loc[i, '英文评论'] = comment
 
         # 分析评论
         analysis = comment_analyzor.comment_analyze(comment)
-        df.loc[i, '英文分析'] = analysis
+        row.loc[i, '英文分析'] = analysis
         #print(f"分析结果: {analysis}")
 
         # 提取结果
         extracted_output = extract_output(analysis)
-        df.loc[i, '分析结果'] = ''.join(extracted_output)
+        row.loc[i, '分析结果'] = ''.join(extracted_output)
         #print(f"提取结果: {extracted_output}")
 
         # 翻译评论
@@ -61,9 +66,7 @@ def openai_infer(comment_analyzor, dataframe, save_path):
         #print(f"翻译分析: {translated_analysis}")
 
         # 反审查
-        break
-
-    df.to_csv(save_path, sep='\t', index=False)
+        row.to_csv(save_path, sep='\t', mode='a', header=False, index=False)
 
 
 if __name__ == '__main__':
@@ -83,5 +86,9 @@ if __name__ == '__main__':
 
     if args.arch == 'openai':
         comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, model=args.model)
-        openai_infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
+        
+    elif args.arch == 'api2d':
+        comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, model=args.model)
+
+    infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
 
