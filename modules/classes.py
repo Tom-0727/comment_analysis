@@ -1,7 +1,7 @@
 
 
 
-ENGLISH_POINTS = {'Installation Difficulty': 'The user found the product installation either difficult or easy.',
+POINTS = {'stations': {'Installation Difficulty': 'The user found the product installation either difficult or easy.',
  'Installation Time': 'The installation took an unreasonably long time, and the user perceived it as too long. There is a distinction between an objective duration declare and a complaint.',
  'Number of Assembly Parts': 'The user felt there were too many parts to assemble.',
  'Manual Content': 'The instruction manual is comprehensive, easy to understand, and accurate.',
@@ -28,4 +28,4 @@ ENGLISH_POINTS = {'Installation Difficulty': 'The user found the product install
  'Legroom Space': 'The legroom is spacious enough and does not feel cramped.',
  'Storage Space': 'The user has enough storage space for their items. Desk surface space is not considered storage; only drawers and shelves qualify.',
  'Additional power outlet': 'The product includes power outlets, Type-C ports, USB ports, or similar features.',
- 'Cable Management': 'The product has cable management features such as cable holes, organizers, or trays.'}
+ 'Cable Management': 'The product has cable management features such as cable holes, organizers, or trays.'}}
