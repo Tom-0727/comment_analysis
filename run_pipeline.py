@@ -1,6 +1,7 @@
 import os
 import re
 import yaml
+import time
 import argparse
 import pandas as pd
 from tqdm import tqdm
@@ -10,8 +11,12 @@ from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
 
 
 def read_file(file_path):
-    df = pd.read_csv(file_path, sep='\t')
+    # 使用 pandas 读取所有工作表
     print(f"读取文件: {file_path}")
+    df = pd.read_csv(file_path)
+
+    df['内容'] = df['productComments']
+    
     print(df.columns)
     df['英文评论'] = ''
     df['中文评论'] = ''
@@ -35,9 +40,13 @@ def infer(comment_analyzor, dataframe, save_path):
 
     if not os.path.exists(save_path):
         dataframe.iloc[:0].to_csv(save_path, sep='\t', index=False)
+    df_to_save = pd.read_csv(save_path, sep='\t')
+    start_index = len(df_to_save)
 
-    length = len(dataframe) 
-    for i in tqdm(range(length)):
+    length = len(dataframe)
+    assert length > start_index, 'The save file length is more than dataframe to do comment analysis'
+
+    for i in tqdm(range(start_index, length)):
         comment = df.iloc[i]['内容']
         if not isinstance(comment, str):
             continue
