@@ -32,6 +32,10 @@ Example2: comment="It's a great looking product once it is all put together. The
 Now do: comment='''
         return prompt
     
+    def get_inspect_prompt(self):
+        prompt = ''''''
+        return prompt
+    
     def preprocess(self, text):
         text = text.replace('\n', ' ')
         text = text.replace('"', "")
