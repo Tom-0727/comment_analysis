@@ -35,6 +35,18 @@ def extract_output(text):
     return matches
 
 
+def remove_duplicate_values(input_dict):
+    seen_values = set()  # 用于存储已经出现过的值
+    output_dict = {}  # 用于存储最终的结果
+
+    for key, value in input_dict.items():
+        if value not in seen_values:
+            seen_values.add(value)
+            output_dict[key] = value
+
+    return output_dict
+
+
 def infer(comment_analyzor, dataframe, save_path):
     df = dataframe
 
@@ -61,17 +73,20 @@ def infer(comment_analyzor, dataframe, save_path):
 
         # 提取结果
         extracted_output = extract_output(analysis)
-        row.loc[i, '分析结果'] = ''.join(extracted_output)
+        extracted_output = ''.join(extracted_output)
+        extracted_output = eval(extracted_output)
+        extracted_output = remove_duplicate_values(extracted_output)
+        row.loc[i, '分析结果'] = str(extracted_output)
         #print(f"提取结果: {extracted_output}")
 
         # 翻译评论
         # translated_comment = comment_analyzor.translate(comment)
-        # df.loc[i, '中文评论'] = translated_comment
+        # row.loc[i, '中文评论'] = translated_comment
         #print(f"原: {comment}\n翻译评论: {translated_comment}")
 
         # 翻译分析
         # translated_analysis = comment_analyzor.translate(analysis)
-        # df.loc[i, '中文分析'] = translated_analysis
+        # row.loc[i, '中文分析'] = translated_analysis
         #print(f"翻译分析: {translated_analysis}")
 
         # 反审查
