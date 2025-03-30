@@ -11,6 +11,7 @@ class CommentAnalysisAgent:
         self.points = POINTS[criteria]
         self.comment_analyze_prompt = self.get_comment_analyze_prompt()
         self.points_extract_prompt = self.get_points_extract_prompt()
+        self.inspect_prompt = self.get_inspect_prompt()
 
     def get_comment_analyze_prompt(self):
         points = str(self.points)
@@ -33,7 +34,10 @@ Now do: comment='''
         return prompt
     
     def get_inspect_prompt(self):
-        prompt = ''''''
+        prompt = '''You are a comment analyst. You will have a comment and a dict of points in the form of {'Pos1': 'xxx', ..., 'PosN': 'xxx', 'Neg1': 'xxx', ..., 'NegN': 'xxx', 'Neu1': 'xxx', 'NeuN': 'xxx'}, where the key of dict is emotion bias, and the value of dict is the point.
+You task is to check whether the points are actually in the comment or not, and check whether the emotional bias is correct. You should show your analysis process and output {'Integrity': 'True/False'}.
+Example1: comment="It's a great looking product once it is all put together. There are a lot of screws, so be careful when screwing the frame to the desk top panels to prevent screws penetrating through the panels. Double check the screw sizes."; points={'Pos1': 'Aesthetics', 'Neu1': 'Number of Assembly Parts', 'Neg1': Stability}; output=The review did not mention stability, so {'Integrity': 'False'}
+Now do: comment='''
         return prompt
     
     def preprocess(self, text):
@@ -56,6 +60,12 @@ Now do: comment='''
     def points_extract(self, comment):
         comment = self.preprocess(comment)
         task_text = self.points_extract_prompt + '"' + comment + '"; output='
+        response = self.one_shot(task_text)
+        return response
+
+    def inspect(self, comment, pre_points):
+        comment = self.preprocess(comment)
+        task_text = self.inspect_prompt + '"' + comment + '"'+'; points='+ pre_points +'; output='
         response = self.one_shot(task_text)
         return response
 

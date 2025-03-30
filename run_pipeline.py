@@ -13,9 +13,9 @@ from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
 def read_file(file_path):
     # 使用 pandas 读取所有工作表
     print(f"读取文件: {file_path}")
-    df = pd.read_csv(file_path)
+    df = pd.read_csv(file_path, sep='\t')
 
-    df['内容'] = df['productComments']
+    df['内容'] = df['content']
     
     print(df.columns)
     df['英文评论'] = ''
@@ -79,6 +79,8 @@ def infer(comment_analyzor, dataframe, save_path):
         row.loc[i, '分析结果'] = str(extracted_output)
         #print(f"提取结果: {extracted_output}")
 
+
+
         # 翻译评论
         # translated_comment = comment_analyzor.translate(comment)
         # row.loc[i, '中文评论'] = translated_comment
@@ -90,6 +92,7 @@ def infer(comment_analyzor, dataframe, save_path):
         #print(f"翻译分析: {translated_analysis}")
 
         # 反审查
+        # check_result = 
         row.to_csv(save_path, sep='\t', mode='a', header=False, index=False)
 
 
@@ -98,6 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("--api_key_yaml_path", type=str, required=True)
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--arch", type=str, required=True)
+    parser.add_argument("--criteria", type=str, required=True)
     parser.add_argument("--file_path", type=str, required=True)
     parser.add_argument("--output_path", type=str, required=True)
     args = parser.parse_args()
@@ -109,10 +113,10 @@ if __name__ == '__main__':
     dataframe = read_file(args.file_path)
 
     if args.arch == 'openai':
-        comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, model=args.model)
+        comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, criteria=args.criteria, model=args.model)
         
     elif args.arch == 'api2d':
-        comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, model=args.model)
+        comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, criteria=args.criteria, model=args.model)
 
     infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
 

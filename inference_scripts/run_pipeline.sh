@@ -2,5 +2,6 @@
 python run_pipeline.py --api_key_yaml_path openai_keys.yaml \
     --model gpt-4o-2024-08-06 \
     --arch openai \
-    --file_path x.csv \
-    --output_path x.csv
+    --criteria stations \
+    --file_path ./docs/stations_desk_buffer/testset_stations.csv \
+    --output_path ./results/testset_stations.csv
