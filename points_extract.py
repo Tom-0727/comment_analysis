@@ -6,25 +6,9 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 
+from modules.utils import csv_enter, xlsx_enter
 from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
 
-
-
-def read_file(file_path):
-    # 使用 pandas 读取所有工作表
-    print(f"读取文件: {file_path}")
-    df = pd.read_csv(file_path, sep='\t')
-
-    df['内容'] = df['content']
-    
-    print(df.columns)
-    df['英文评论'] = ''
-    df['中文评论'] = ''
-    df['英文分析'] = ''
-    df['中文分析'] = ''
-    df['分析结果'] = ''
-    df['反审查结果'] = ''
-    return df
 
 
 def extract_output(text):
@@ -48,6 +32,11 @@ def remove_duplicate_values(input_dict):
 
 
 def infer(comment_analyzor, dataframe, save_path):
+    dataframe['英文分析'] = ''
+    dataframe['好差评结果'] = ''
+    dataframe['中文评论'] = ''
+    dataframe['中文分析'] = ''
+    dataframe['审查结果'] = ''
     df = dataframe
 
     if not os.path.exists(save_path):
@@ -59,12 +48,11 @@ def infer(comment_analyzor, dataframe, save_path):
     assert length > start_index, 'The save file length is more than dataframe to do comment analysis'
 
     for i in tqdm(range(start_index, length)):
-        comment = df.iloc[i]['内容']
+        comment = df.iloc[i]['评论内容']
         if not isinstance(comment, str):
             continue
         
         row = dataframe.iloc[[i]].copy()
-        row.loc[i, '英文评论'] = comment
 
         # 分析评论
         analysis = comment_analyzor.comment_analyze(comment)
@@ -76,23 +64,22 @@ def infer(comment_analyzor, dataframe, save_path):
         extracted_output = ''.join(extracted_output)
         extracted_output = eval(extracted_output)
         extracted_output = remove_duplicate_values(extracted_output)
-        row.loc[i, '分析结果'] = str(extracted_output)
+        row.loc[i, '好差评结果'] = str(extracted_output)
         #print(f"提取结果: {extracted_output}")
 
-
-
         # 翻译评论
-        # translated_comment = comment_analyzor.translate(comment)
-        # row.loc[i, '中文评论'] = translated_comment
+        translated_comment = comment_analyzor.translate(comment)
+        row.loc[i, '中文评论'] = translated_comment
         #print(f"原: {comment}\n翻译评论: {translated_comment}")
 
         # 翻译分析
-        # translated_analysis = comment_analyzor.translate(analysis)
-        # row.loc[i, '中文分析'] = translated_analysis
+        translated_analysis = comment_analyzor.translate(analysis)
+        row.loc[i, '中文分析'] = translated_analysis
         #print(f"翻译分析: {translated_analysis}")
 
         # 反审查
-        # check_result = 
+        check_result = comment_analyzor.inspect(comment, str(extracted_output))
+        row.loc[i, '审查结果'] = check_result
         row.to_csv(save_path, sep='\t', mode='a', header=False, index=False)
 
 
@@ -102,6 +89,8 @@ if __name__ == '__main__':
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--arch", type=str, required=True)
     parser.add_argument("--criteria", type=str, required=True)
+    parser.add_argument("--template", type=str, required=True)
+    parser.add_argument("--read_mode", type=str, required=True)
     parser.add_argument("--file_path", type=str, required=True)
     parser.add_argument("--output_path", type=str, required=True)
     args = parser.parse_args()
@@ -110,13 +99,15 @@ if __name__ == '__main__':
         data = yaml.safe_load(file)
     my_key = data[args.arch]['key']
     
-    dataframe = read_file(args.file_path)
+    if args.read_mode == 'csv':
+        dataframe = csv_enter(args.file_path)
+    elif args.read_mode == 'xlsx':
+        dataframe = xlsx_enter(args.file_path)
 
     if args.arch == 'openai':
-        comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, criteria=args.criteria, model=args.model)
-        
+        comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, criteria=args.criteria, model=args.model, template=args.template)
     elif args.arch == 'api2d':
-        comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, criteria=args.criteria, model=args.model)
+        comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, criteria=args.criteria, model=args.model, template=args.template)
 
     infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
 
