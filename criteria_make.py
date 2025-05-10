@@ -1,5 +1,6 @@
 import os
 import re
+import ast
 import yaml
 import time
 import argparse
@@ -28,7 +29,7 @@ def point_extract(comment_analyzor, dataframe, save_path):
     df = dataframe
 
     if not os.path.exists(save_path):
-        dataframe.iloc[:0].to_csv(save_path, sep='\t', index=False)
+        dataframe.iloc[:0].assign(体验点='', 体验点分析='').to_csv(save_path, sep='\t', index=False)
     df_to_save = pd.read_csv(save_path, sep='\t')
     start_index = len(df_to_save)
 
@@ -53,23 +54,28 @@ def point_extract(comment_analyzor, dataframe, save_path):
         row.to_csv(save_path, sep='\t', mode='a', header=False, index=False)
 
 
-def clustering(file_path, save_path):
+def clustering(file_path, save_path, cluster_method='points'):
     df = pd.read_csv(file_path, sep=None, engine='python')
 
     exp_dict = df['体验点'].tolist()  # 删除空值并转为列表
     exp_points = []
     exp_desc = []
     for i in range(len(exp_dict)):
-        exp = eval(exp_dict[i])
+        fixes_data = re.sub(r"(?<=[a-zA-Z])'s", " ", exp_dict[i])
+        exp = ast.literal_eval(fixes_data)
         for point, des in exp.items():
             exp_desc.append(des)
             exp_points.append(point)
+    if cluster_method == 'points':
+        to_cluster = exp_points
+    elif cluster_method == 'descriptions':
+        to_cluster = exp_desc
 
     model = BGEM3FlagModel('/home/tom/codes/models/bge-m3',  
                        use_fp16=True) # Setting use_fp16 to True speeds up computation with a slight performance degradation
-    embeddings = model.encode(exp_desc, batch_size=12, max_length=1024)['dense_vecs']
+    embeddings = model.encode(to_cluster, batch_size=12, max_length=1024)['dense_vecs']
 
-    num_clusters = min(100, len(exp_desc) // 2)  # 设置聚类数目，最多100个簇
+    num_clusters = min(100, len(to_cluster) // 2)  # 设置聚类数目，最多100个簇
     km = KMeans(n_clusters=num_clusters)
     km.fit(embeddings)
 
@@ -136,7 +142,7 @@ def clustering(file_path, save_path):
         except Exception as e:
             print(f"处理簇 {cluster_id} 时发生错误: {str(e)}")
 
-    df.to_csv(save_path.replace('.csv', '_cluster.csv'), sep='\t', index=False)
+    df.to_csv(save_path.replace('.csv', f'_cluster_{cluster_method}.csv'), sep='\t', index=False)
 
 
 if __name__ == '__main__':
@@ -164,5 +170,5 @@ if __name__ == '__main__':
     elif args.arch == 'api2d':
         comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, criteria='stations_executive_desk', model=args.model, template=args.template)
 
-    point_extract(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
+    # point_extract(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
     clustering(file_path=args.output_path, save_path=args.output_path)
