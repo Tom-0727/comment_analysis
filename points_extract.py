@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 
-from modules.utils import csv_enter, xlsx_enter
+from modules.utils import csv_enter, amz_xlsx_enter
 from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
 
 
@@ -35,7 +35,6 @@ def infer(comment_analyzor, dataframe, save_path):
     dataframe['英文分析'] = ''
     dataframe['好差评结果'] = ''
     dataframe['中文评论'] = ''
-    dataframe['中文分析'] = ''
     dataframe['审查结果'] = ''
     df = dataframe
 
@@ -72,11 +71,6 @@ def infer(comment_analyzor, dataframe, save_path):
         row.loc[i, '中文评论'] = translated_comment
         #print(f"原: {comment}\n翻译评论: {translated_comment}")
 
-        # 翻译分析
-        translated_analysis = comment_analyzor.translate(analysis)
-        row.loc[i, '中文分析'] = translated_analysis
-        #print(f"翻译分析: {translated_analysis}")
-
         # 反审查
         check_result = comment_analyzor.inspect(comment, str(extracted_output))
         row.loc[i, '审查结果'] = check_result
@@ -101,8 +95,8 @@ if __name__ == '__main__':
     
     if args.read_mode == 'csv':
         dataframe = csv_enter(args.file_path)
-    elif args.read_mode == 'xlsx':
-        dataframe = xlsx_enter(args.file_path)
+    elif args.read_mode == 'amz_xlsx':
+        dataframe = amz_xlsx_enter(args.file_path)
 
     if args.arch == 'openai':
         comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, criteria=args.criteria, model=args.model, template=args.template)

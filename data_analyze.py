@@ -1,5 +1,6 @@
 import ast
 import json
+import argparse
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -29,14 +30,14 @@ def cal_importance(df):
         
         # 提取值并更新计数
         for value in analysis_dict.values():
-            value_counts[value] += 1
+            value_counts[value.lower()] += 1
 
     # 计算频率
     if total_comments > 0:
         frequency = {k: round(v / total_comments, 4) for k, v in value_counts.items()}
     else:
         frequency = {}
-    
+
     return frequency
 
 
@@ -57,6 +58,7 @@ def cal_satisfaction(df):
         
         for key in analysis_result.keys():
             value = analysis_result[key]
+            value = value.lower()
             key = key.lower()
             
             if key.startswith('pos'):
@@ -73,7 +75,6 @@ def cal_satisfaction(df):
     # 计算满意度和分歧度
     satisfaction_result = {}
     diversity_result = {}
-    # print(satisfaction)
     
     for key, scores in satisfaction.items():
         mean_score = round(float(np.mean(scores)), 4)
@@ -83,16 +84,33 @@ def cal_satisfaction(df):
             std_dev = 0
         satisfaction_result[key] = mean_score
         diversity_result[key] = std_dev
-    
+    # print(satisfaction_result)
+    # print(diversity_result)
     return satisfaction_result, diversity_result
 
 
+def expand_list_column(df, col_name, prefix):
+    # 如果原始值是字符串形式的列表，先转换
+    df[col_name] = df[col_name].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) and x.startswith('[') else [])
+    
+    # 找出最大列表长度
+    max_len = df[col_name].apply(len).max()
+    
+    # 展开成多个列
+    for i in range(max_len):
+        df[f'{prefix}点{i+1}'] = df[col_name].apply(lambda x: x[i] if i < len(x) else None)
+    
+    # 可选：原列可以删掉
+    df.drop(columns=[col_name], inplace=True)
+
 
 if __name__ == '__main__':
-    file_path = './buffer/standing_samples2.csv'
-    output_path = './buffer/tmp_ana.xlsx'
-    criteria_path = './docs/standing_desk_criteria.csv'
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--criteria_path", type=str, required=True)
+    parser.add_argument("--file_path", type=str, required=True)
+    parser.add_argument("--output_path", type=str, required=True)
+    args = parser.parse_args()
+
     now = datetime.now()
     half_year_ago = now - timedelta(days=365/2)
     half_year_date = half_year_ago.strftime('%Y-%m-%d')
@@ -107,13 +125,13 @@ if __name__ == '__main__':
     }
     # print(two_years_date)
 
-    df = pd.read_csv(file_path, sep=None, engine='python')
+    df = pd.read_csv(args.file_path, sep=None, engine='python')
     # df = pd.read_excel(file_path, sheet_name='升降桌测试')
     # print(df.columns)
     df['评论时间'] = pd.to_datetime(df['评论时间'])
     df = df.dropna(subset=['好差评结果'])
 
-    criteria_df = pd.read_csv(criteria_path, sep=None, engine='python')
+    criteria_df = pd.read_csv(args.criteria_path, sep=None, engine='python')
     e2c_dict = dict(zip(criteria_df['体验点二级分类英文'].apply(str.lower), criteria_df['体验点二级分类']))
 
     df['好评'] = ''
@@ -149,7 +167,12 @@ if __name__ == '__main__':
         df.loc[i, '差评'] = str(neg)
         df.loc[i, '中评'] = str(neu)
 
-    with pd.ExcelWriter(output_path) as writer:
+    # 依次展开三列
+    expand_list_column(df, '好评', '好评')
+    expand_list_column(df, '差评', '差评')
+    expand_list_column(df, '中评', '中评')
+
+    with pd.ExcelWriter(args.output_path) as writer:
         # 将每个DataFrame写入不同的工作表
         df.to_excel(writer, sheet_name='好差评打标', index=False)
         criteria_df.to_excel(writer, sheet_name='体验点分类标准', index=False)
@@ -172,7 +195,7 @@ if __name__ == '__main__':
             analysis_df.reset_index(inplace=True)
             analysis_df.rename(columns={'index': '体验点'}, inplace=True)
 
-            analysis_df['质量改进优先度'] = analysis_df['重要度'] * (6 - analysis_df['满意度'])
+            analysis_df['Top痛点'] = analysis_df['重要度'] * analysis_df['满意度']
 
             for i in range(len(analysis_df)):
                 analysis_df.loc[i, '体验点'] = e2c_dict[analysis_df.iloc[i]['体验点'].lower()]
