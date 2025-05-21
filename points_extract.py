@@ -16,7 +16,22 @@ def extract_output(text):
     matches = re.findall(pattern, text, re.DOTALL)
 
     matches = [match.replace('\n', '') for match in matches]
-    return matches
+    # 去除重复的字典字符串
+    unique_matches = list(set(matches))  # 使用 set 去重，然后转回 list
+
+    # 将去重后的字典字符串拼接成一个字符串
+    extracted_output = ''.join(unique_matches)
+
+    # 只要第一个{}包含起来的字典
+    first_brace_index = extracted_output.find('{')
+    last_brace_index = extracted_output.rfind('}')
+    extracted_output = extracted_output[first_brace_index:last_brace_index + 1]
+    
+    # 使用 eval 将字符串转换为字典
+    extracted_output = eval(extracted_output)
+    
+    return extracted_output
+
 
 
 def remove_duplicate_values(input_dict):
@@ -60,8 +75,6 @@ def infer(comment_analyzor, dataframe, save_path, to_translate, to_inspect):
 
         # 提取结果
         extracted_output = extract_output(analysis)
-        extracted_output = ''.join(extracted_output)
-        extracted_output = eval(extracted_output)
         extracted_output = remove_duplicate_values(extracted_output)
         row.loc[i, '好差评结果'] = str(extracted_output)
         #print(f"提取结果: {extracted_output}")
