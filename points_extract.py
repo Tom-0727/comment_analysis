@@ -7,7 +7,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from modules.utils import csv_enter, amz_xlsx_enter
-from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent
+from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent, QwenCommentAnalysisAgent
 
 
 
@@ -31,7 +31,7 @@ def remove_duplicate_values(input_dict):
     return output_dict
 
 
-def infer(comment_analyzor, dataframe, save_path):
+def infer(comment_analyzor, dataframe, save_path, to_translate, to_inspect):
     dataframe['英文分析'] = ''
     dataframe['好差评结果'] = ''
     dataframe['中文评论'] = ''
@@ -67,13 +67,17 @@ def infer(comment_analyzor, dataframe, save_path):
         #print(f"提取结果: {extracted_output}")
 
         # 翻译评论
-        translated_comment = comment_analyzor.translate(comment)
-        row.loc[i, '中文评论'] = translated_comment
-        #print(f"原: {comment}\n翻译评论: {translated_comment}")
+        if to_translate:
+            translated_comment = comment_analyzor.translate(comment)
+            row.loc[i, '中文评论'] = translated_comment
+        # # print(f"原: {comment}\n翻译评论: {translated_comment}")
 
-        # 反审查
-        check_result = comment_analyzor.inspect(comment, str(extracted_output))
-        row.loc[i, '审查结果'] = check_result
+        # # 反审查
+        if to_inspect:
+            check_result = comment_analyzor.inspect(comment, str(extracted_output))
+            row.loc[i, '审查结果'] = check_result
+
+        # 保存结果
         row.to_csv(save_path, sep='\t', mode='a', header=False, index=False)
 
 
@@ -87,6 +91,8 @@ if __name__ == '__main__':
     parser.add_argument("--read_mode", type=str, required=True)
     parser.add_argument("--file_path", type=str, required=True)
     parser.add_argument("--output_path", type=str, required=True)
+    parser.add_argument("--to_translate", type=str, default='False')
+    parser.add_argument("--to_inspect", type=str, default='False')
     args = parser.parse_args()
 
     with open(args.api_key_yaml_path, "r", encoding="utf-8") as file:
@@ -102,6 +108,13 @@ if __name__ == '__main__':
         comment_analyzor = OpenAICommentAnalysisAgent(openai_key=my_key, criteria=args.criteria, model=args.model, template=args.template)
     elif args.arch == 'api2d':
         comment_analyzor = API2DCommentAnalysisAgent(forward_key=my_key, criteria=args.criteria, model=args.model, template=args.template)
+    elif args.arch == 'qwen':
+        comment_analyzor = QwenCommentAnalysisAgent(key=my_key, criteria=args.criteria, model=args.model, template=args.template)
 
-    infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path)
+    yes_range = ['True', 'true', '1', 'yes', 'Yes']
+    to_translate = args.to_translate in yes_range
+    to_inspect = args.to_inspect in yes_range
+
+
+    infer(comment_analyzor=comment_analyzor, dataframe=dataframe, save_path=args.output_path, to_translate=to_translate, to_inspect=to_inspect)
 

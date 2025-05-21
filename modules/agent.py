@@ -118,3 +118,24 @@ class API2DCommentAnalysisAgent(CommentAnalysisAgent):
         resp = eval(resp.replace('null', '0'))
 
         return resp['choices'][0]['message']['content']
+    
+
+class QwenCommentAnalysisAgent(CommentAnalysisAgent):
+    def __init__(self, key, criteria, template, model="qwen-plus"):
+        self.client = OpenAI(
+            api_key=key,
+            base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        )
+        self.model = model
+        super().__init__(criteria, template)
+
+    def one_shot(self, text):
+        completion = self.client.chat.completions.create(
+            model=self.model, # 模型列表：https://help.aliyun.com/zh/model-studio/getting-started/models
+            messages=[
+                {'role': 'system', 'content': 'You are a helpful assistant.'},
+                {'role': 'user', 'content': text}
+                ]
+        )
+
+        return completion.choices[0].message.content

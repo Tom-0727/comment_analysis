@@ -41,6 +41,63 @@ def cal_importance(df):
     return frequency
 
 
+def cal_splitemo(df):
+    pos_count = {}
+    pos_satis = {}
+    neg_satis = {}
+    neg_count = {}
+    total_comments = 0
+    for i in range(len(df)):
+        a = df.iloc[i]['好差评结果']
+        a = str(a)
+        
+        try:
+            # 将单引号替换为双引号以符合JSON格式
+            analysis_result = json.loads(a.replace("'", "\""))
+        except json.JSONDecodeError:
+            # 忽略无法解析的JSON字符串
+            print('-')
+            continue
+        
+        total_comments += 1
+
+        for key in analysis_result.keys():
+            value = analysis_result[key]
+            value = value.lower()
+            key = key.lower()
+            
+            if key.startswith('pos'):
+                if value in pos_count:
+                    pos_count[value] += 1
+                    pos_satis[value] += float(df.iloc[i]['评分'])
+                else:
+                    pos_count[value] = 1
+                    pos_satis[value] = float(df.iloc[i]['评分'])
+            elif key.startswith('neg'):
+                if value in neg_count:
+                    neg_count[value] += 1
+                    neg_satis[value] += float(df.iloc[i]['评分']) - 6
+                else:
+                    neg_count[value] = 1
+                    neg_satis[value] = float(df.iloc[i]['评分']) - 6
+    # 计算频率
+    if total_comments > 0:
+        pos_frequency = {k: round(v / total_comments, 4) for k, v in pos_count.items()}
+        neg_frequency = {k: round(v / total_comments, 4) for k, v in neg_count.items()}
+    else:
+        pos_frequency = {}
+        neg_frequency = {}
+
+    # 计算满意度
+    for key in pos_satis.keys():
+        pos_satis[key] = round(pos_satis[key] / pos_count[key], 4)
+    for key in neg_satis.keys():
+        neg_satis[key] = round(neg_satis[key] / neg_count[key], 4)
+
+
+    return pos_frequency, neg_frequency, pos_satis, neg_satis
+
+
 def cal_satisfaction(df):
     # 初始化满意度的字典
     satisfaction = {}
@@ -118,10 +175,13 @@ if __name__ == '__main__':
     one_year_date = one_year_ago.strftime('%Y-%m-%d')
     two_years_ago = now - timedelta(days=365*2)
     two_years_date = two_years_ago.strftime('%Y-%m-%d')
+    three_years_ago = now - timedelta(days=365*3)
+    three_years_date = three_years_ago.strftime('%Y-%m-%d')
     time_stamps = {
         '近半年数据分析': half_year_date,
         '近一年数据分析': one_year_date,
-        '近两年数据分析': two_years_date
+        '近两年数据分析': two_years_date,
+        '近三年数据分析': three_years_date
     }
     # print(two_years_date)
 
@@ -184,11 +244,16 @@ if __name__ == '__main__':
 
             importance = cal_importance(filtered_df)
             satisfaction, diversity = cal_satisfaction(filtered_df)
+            pos_frequency, neg_frequency, pos_satisfaction, neg_satisfaction = cal_splitemo(filtered_df)
 
             data = {
                 '重要度': importance,
                 '满意度': satisfaction,
-                '分歧度': diversity
+                '分歧度': diversity,
+                '好评频率': pos_frequency,
+                '差评频率': neg_frequency,
+                '好评满意度': pos_satisfaction,
+                '差评满意度': neg_satisfaction
             }
 
             analysis_df = pd.DataFrame(data)

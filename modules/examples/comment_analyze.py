@@ -19,6 +19,6 @@ Example2: comment="Easy to assemble. The table top is real wood. Great price."; 
 Example3: comment="wasn't even the same measurements as what it said in the pictures"; output={'Neg1': 'Product Image/Description Mismatch'}''',
     "ceiling_fan": '''
 Example1: comment="Good fan! Lets go!"; output={}
-Example2: comment="Classy exciting fan to turn heads!"; output={'Pos1': 'Style & Appearance'}
-Example3: comment="I love this fan! It is so quiet and moves a lot of air. I have it in my bedroom and it is perfect. I love the remote control feature. I would recommend this fan to anyone."; output={'Pos1': 'Noise Level', 'Pos2': 'Airflow', 'Pos3': 'Remote & Control Functions', 'Pos4': 'Recommendation'}''',
+Example2: comment="Classy exciting fan to turn heads!"; output={'Pos1': 'Appearance & Style'}
+Example3: comment="I love this fan! It is so quiet and moves a lot of air. I have it in my bedroom and it is perfect. I love the remote control feature. I would recommend this fan to anyone."; output={'Pos1': 'Noise Level', 'Pos2': 'Airflow Performance', 'Pos3': 'Remote & Control Functions', 'Pos4': 'Recommendation'}''',
 }

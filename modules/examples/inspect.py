@@ -10,5 +10,5 @@ Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; po
     "gangmu_desk": '''
 Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; points={'Pos1': 'Appearance & Style'}; output=The review did not mention visual characteristics and aesthetic presentation, so {'Integrity': 'False'}''',
     "ceiling_fan": '''
-Example1: comment="Good fan! Lets go!"; points={'Pos1': 'Style & Appearance'}; output=The review did not mention visual characteristics and aesthetic presentation, so {'Integrity': 'False'}''',
+Example1: comment="Good fan! Lets go!"; points={'Pos1': 'Appearance & Style'}; output=The review did not mention visual characteristics and aesthetic presentation, so {'Integrity': 'False'}''',
 }

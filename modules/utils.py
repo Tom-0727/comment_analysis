@@ -42,4 +42,4 @@ def amz_xlsx_enter(file_path, time_thre='2023-01-01'):
     print('After Time filtering:', sep=' ') 
     print(filtered_df.shape)
     
-    return df
+    return filtered_df
