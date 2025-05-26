@@ -174,3 +174,4 @@ results/
 buffer/
 .DS_Store/
 .gradio/
+visualizations/

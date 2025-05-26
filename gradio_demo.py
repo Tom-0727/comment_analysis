@@ -9,7 +9,10 @@ from datetime import datetime, timedelta
 from modules.agent import OpenAICommentAnalysisAgent, API2DCommentAnalysisAgent, QwenCommentAnalysisAgent
 from modules.utils import csv_enter, amz_xlsx_enter
 from modules.classes import POINTS
-from data_analyze import cal_importance, cal_satisfaction, cal_splitemo, expand_list_column
+
+from modules.data_analyzor import DataAnalyzor
+from modules.point_extractor import extract_output, remove_duplicate_values
+from modules.visualizor import create_quick_visualization
 
 # 确保输出目录存在
 os.makedirs("./buffer", exist_ok=True)
@@ -41,40 +44,6 @@ def update_user_status(user_id, file_name, progress, total):
         'progress': f"{progress}/{total}",
         'last_active': time.time()
     }
-
-def extract_output(text):
-    pattern = r'\{.*?\}'
-    matches = re.findall(pattern, text, re.DOTALL)
-
-    matches = [match.replace('\n', '') for match in matches]
-    # 去除重复的字典字符串
-    unique_matches = list(set(matches))  # 使用 set 去重，然后转回 list
-
-    # 将去重后的字典字符串拼接成一个字符串
-    extracted_output = ''.join(unique_matches)
-
-    # 只要第一个{}包含起来的字典
-    first_brace_index = extracted_output.find('{')
-    last_brace_index = extracted_output.rfind('}')
-    extracted_output = extracted_output[first_brace_index:last_brace_index + 1]
-    
-    # 使用 eval 将字符串转换为字典
-    extracted_output = eval(extracted_output)
-    
-    return extracted_output
-
-
-def remove_duplicate_values(input_dict):
-    seen_values = set()  # 用于存储已经出现过的值
-    output_dict = {}  # 用于存储最终的结果
-
-    for key, value in input_dict.items():
-        if value not in seen_values:
-            seen_values.add(value)
-            output_dict[key] = value
-
-    return output_dict
-
 
 def analyze_reviews(file, asin, model_type, api_key, product_type, template, 
                    need_translate, need_inspect, need_points_extract, progress=gr.Progress()):
@@ -181,110 +150,8 @@ def analyze_reviews(file, asin, model_type, api_key, product_type, template,
                 continue
 
         # 读取分析结果进行数据处理
-        df = pd.read_csv(output_csv)
-        df['评论时间'] = pd.to_datetime(df['评论时间'])
-        df = df.dropna(subset=['好差评结果'])
-
-        # 计算时间戳
-        now = datetime.now()
-        half_year_ago = now - timedelta(days=365/2)
-        half_year_date = half_year_ago.strftime('%Y-%m-%d')
-        one_year_ago = now - timedelta(days=365)
-        one_year_date = one_year_ago.strftime('%Y-%m-%d')
-        two_years_ago = now - timedelta(days=365*2)
-        two_years_date = two_years_ago.strftime('%Y-%m-%d')
-        three_years_ago = now - timedelta(days=365*3)
-        three_years_date = three_years_ago.strftime('%Y-%m-%d')
-        time_stamps = {
-            '近半年数据分析': half_year_date,
-            '近一年数据分析': one_year_date,
-            '近两年数据分析': two_years_date,
-            '近三年数据分析': three_years_date
-        }
-
-        # 根据产品类型获取对应的criteria文件路径
-        criteria_path = f"./modules/criterias/{product_type}_criteria.csv"
-        if not os.path.exists(criteria_path):
-            return f"找不到产品类型 {product_type} 的criteria文件", None
-        
-        # 读取criteria文件
-        criteria_df = pd.read_csv(criteria_path, sep=None, engine='python')
-        e2c_dict = dict(zip(criteria_df['体验点二级分类英文'].apply(str.lower), criteria_df['体验点二级分类']))
-
-        df['好评'] = ''
-        df['差评'] = ''
-        df['中评'] = ''
-        for i in range(len(df)):
-            ext_pts = df.iloc[i]['好差评结果']
-            try:
-                ext_pts = eval(ext_pts)
-            except:
-                print(ext_pts)
-                continue
-            pos = []
-            neg = []
-            neu = []
-            for k in ext_pts.keys():
-                if 'Pos' in k or 'pos' in k:
-                    ch = ext_pts[k]
-                    ch = ch.strip().lower()
-                    ch = e2c_dict[ch]
-                    pos.append(ch)
-                elif 'Neg' in k or 'neg' in k:
-                    ch = ext_pts[k]
-                    ch = ch.strip().lower()
-                    ch = e2c_dict[ch]
-                    neg.append(ch)
-                elif 'Neu' in k or 'neu' in k:
-                    ch = ext_pts[k]
-                    ch = ch.strip().lower()
-                    ch = e2c_dict[ch]
-                    neu.append(ch)
-            df.loc[i, '好评'] = str(pos)
-            df.loc[i, '差评'] = str(neg)
-            df.loc[i, '中评'] = str(neu)
-
-        # 展开列表列
-        expand_list_column(df, '好评', '好评')
-        expand_list_column(df, '差评', '差评')
-        expand_list_column(df, '中评', '中评')
-
-        # 创建Excel文件，输出格式与data_analyze.py一致
-        with pd.ExcelWriter(output_xlsx) as writer:
-            # 输出好差评打标sheet
-            df.to_excel(writer, sheet_name='好差评打标', index=False)
-            # 输出体验点分类标准
-            criteria_df.to_excel(writer, sheet_name='体验点分类标准', index=False)
-
-            # 按时间区间输出分析sheet
-            for stamp in time_stamps.keys():
-                filtered_df = df[df['评论时间'] > time_stamps[stamp]]
-
-                importance = cal_importance(filtered_df)
-                satisfaction, diversity = cal_satisfaction(filtered_df)
-                pos_frequency, neg_frequency, pos_satisfaction, neg_satisfaction = cal_splitemo(filtered_df)
-
-                data = {
-                    '重要度': importance,
-                    '满意度': satisfaction,
-                    '分歧度': diversity,
-                    '好评频率': pos_frequency,
-                    '差评频率': neg_frequency,
-                    '好评满意度': pos_satisfaction,
-                    '差评满意度': neg_satisfaction
-                }
-                analysis_df = pd.DataFrame(data)
-                analysis_df.reset_index(inplace=True)
-                analysis_df.rename(columns={'index': '体验点'}, inplace=True)
-                analysis_df['Top痛点'] = analysis_df['重要度'] * analysis_df['满意度']
-
-                # 体验点转中文
-                for i in range(len(analysis_df)):
-                    analysis_df.loc[i, '体验点'] = e2c_dict.get(str(analysis_df.loc[i, '体验点']).lower(), analysis_df.loc[i, '体验点'])
-                analysis_df['评论条数'] = ''
-                analysis_df.loc[0, '评论条数'] = len(filtered_df)
-
-                analysis_df.to_excel(writer, sheet_name=stamp, index=False)
+        data_analyzor = DataAnalyzor(criteria_path=f"./modules/criterias/{product_type}_criteria.csv")
+        data_analyzor.analyze(file_path=output_csv, output_path=output_xlsx)
 
         # 处理完成后移除用户状态
         if user_id in active_users:
@@ -302,73 +169,138 @@ def update_active_users_display():
     """更新活跃用户显示"""
     return get_active_users()
 
+def create_visualization(excel_file):
+    """创建数据可视化"""
+    if excel_file is None:
+        return "请先上传Excel文件", None, None
+    
+    try:
+        # 检查文件是否存在
+        if not os.path.exists(excel_file):
+            return "文件不存在", None, None
+        
+        # 生成HTML文件路径
+        base_name = os.path.splitext(os.path.basename(excel_file))[0]
+        html_file = f"./visualizations/{base_name}_dashboard.html"
+        
+        # 创建可视化，传入HTML输出路径，不自动打开浏览器
+        fig = create_quick_visualization(excel_file, output_html_path=html_file, auto_open_browser=False)
+        
+        # 返回成功信息、文件路径和图表对象
+        return f"✅ 可视化创建成功！\n📊 图表已保存到: {html_file}\n🎯 可以在右侧查看图表，也可以下载HTML文件", html_file, fig
+        
+    except Exception as e:
+        return f"❌ 创建可视化时出现错误：{str(e)}", None, None
+
+def upload_excel_for_visualization(file):
+    """上传Excel文件用于可视化"""
+    if file is None:
+        return "请上传Excel文件", None
+    
+    if not file.name.endswith('.xlsx'):
+        return "请上传.xlsx格式的Excel文件", None
+    
+    return f"✅ 文件上传成功: {os.path.basename(file.name)}", file
+
 # 构建界面
 with gr.Blocks() as demo:
     gr.Markdown("# 评论分析系统")
     
     # 活跃用户显示组件放在最前面
     with gr.Row():
-        active_users_display = gr.Textbox(label="活跃用户", lines=10, value="当前没有活跃用户")
+        active_users_display = gr.Textbox(label="活跃用户", lines=5, value="当前没有活跃用户")
     with gr.Row():
         update_btn = gr.Button("刷新活跃用户")
         update_btn.click(fn=update_active_users_display, outputs=active_users_display)
     
-    with gr.Row():
-        with gr.Column():
-            file_input = gr.File(label="上传文件")
-            asin_input = gr.Textbox(label="ASIN")
-            model_type = gr.Dropdown(
-                choices=["OpenAI", "API2D", "Qwen"],
-                label="选择模型",
-                value="OpenAI"
-            )
+    # 使用Tab组件分离功能
+    with gr.Tabs():
+        # 评论分析标签页
+        with gr.TabItem("评论分析"):
+            with gr.Row():
+                with gr.Column():
+                    file_input = gr.File(label="上传文件")
+                    asin_input = gr.Textbox(label="ASIN")
+                    model_type = gr.Dropdown(
+                        choices=["Qwen", "OpenAI", "API2D"],
+                        label="选择模型",
+                        value="Qwen"
+                    )
+                    
+                    # 定义不同模型类型的版本选项
+                    model_versions = {
+                        "Qwen": ["qwen-plus", "qwen-plus-latest"],
+                        "OpenAI": ["gpt-4.1-2025-04-14", "gpt-4.1-mini-2025-04-14"],
+                        "API2D": ["gpt-4.1-2025-04-14", "gpt-4.1-mini-2025-04-14", "qwen-plus", "claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
+                    }
+                    
+                    model_version = gr.Dropdown(
+                        choices=model_versions["Qwen"],
+                        label="选择模型版本",
+                        value=model_versions["Qwen"][0]
+                    )
+                    
+                    def update_model_version(model_type):
+                        return gr.update(
+                            choices=model_versions[model_type],
+                            value=model_versions[model_type][0],
+                            interactive=True
+                        )
+                    
+                    model_type.change(
+                        fn=update_model_version,
+                        inputs=[model_type],
+                        outputs=[model_version]
+                    )
+                    
+                    api_key = gr.Textbox(label="API Key", type="password")
+                    product_type = gr.Dropdown(
+                        choices=list(POINTS.keys()),
+                        label="选择产品类型",
+                        value=list(POINTS.keys())[0]
+                    )
+                    template = gr.Dropdown(
+                        choices=list(POINTS.keys()),
+                        label="提示词模板",
+                        value=list(POINTS.keys())[0]
+                    )
+                    # 增加一个提示，就是说以下每一个勾选了都会增加消耗和等待时间
+                    gr.Markdown("以下每一个勾选了都会增加消耗和等待时间，请谨慎勾选")
+                    need_translate = gr.Checkbox(label="需要大模型翻译", value=False)
+                    need_inspect = gr.Checkbox(label="需要大模型反审查", value=False)
+                    need_points_extract = gr.Checkbox(label="需要无监督体验点提取", value=False)
+                    analyze_btn = gr.Button("开始分析")
+                    progress = gr.Textbox(label="进度", lines=10)
+                    output_file = gr.File(label="分析结果")
+        
+        # 数据可视化标签页
+        with gr.TabItem("数据可视化"):
+            gr.Markdown("## 📊 数据可视化")
+            gr.Markdown("上传已分析的Excel文件来生成交互式可视化图表")
             
-            # 定义不同模型类型的版本选项
-            model_versions = {
-                "OpenAI": ["gpt-4.1-2025-04-14", "gpt-4.1-mini-2025-04-14"],
-                "Qwen": ["qwen-plus", "qwen-plus-latest"],
-                "API2D": ["gpt-4.1-2025-04-14", "gpt-4.1-mini-2025-04-14", "qwen-plus", "claude-3-opus", "claude-3-sonnet", "claude-3-haiku"]
-            }
-            
-            model_version = gr.Dropdown(
-                choices=model_versions["OpenAI"],
-                label="选择模型版本",
-                value=model_versions["OpenAI"][0]
-            )
-            
-            def update_model_version(model_type):
-                return gr.update(
-                    choices=model_versions[model_type],
-                    value=model_versions[model_type][0],
-                    interactive=True
-                )
-            
-            model_type.change(
-                fn=update_model_version,
-                inputs=[model_type],
-                outputs=[model_version]
-            )
-            
-            api_key = gr.Textbox(label="API Key", type="password")
-            product_type = gr.Dropdown(
-                choices=list(POINTS.keys()),
-                label="选择产品类型",
-                value=list(POINTS.keys())[0]
-            )
-            template = gr.Dropdown(
-                choices=list(POINTS.keys()),
-                label="提示词模板",
-                value=list(POINTS.keys())[0]
-            )
-            # 增加一个提示，就是说以下每一个勾选了都会增加消耗和等待时间
-            gr.Markdown("以下每一个勾选了都会增加消耗和等待时间，请谨慎勾选")
-            need_translate = gr.Checkbox(label="需要大模型翻译", value=False)
-            need_inspect = gr.Checkbox(label="需要大模型反审查", value=False)
-            need_points_extract = gr.Checkbox(label="需要无监督观点提取", value=False)
-            analyze_btn = gr.Button("开始分析")
-            progress = gr.Textbox(label="进度", lines=10)
-            output_file = gr.File(label="分析结果")
+            with gr.Row():
+                with gr.Column():
+                    # 可视化文件上传
+                    viz_file_input = gr.File(
+                        label="上传Excel文件", 
+                        file_types=[".xlsx"],
+                        type="filepath"
+                    )
+                    
+                    # 可视化按钮
+                    viz_btn = gr.Button("🎨 生成可视化", variant="primary")
+                    
+                    # 可视化状态显示
+                    viz_status = gr.Textbox(label="可视化状态", lines=5)
+                    
+                    # HTML文件下载
+                    viz_download = gr.File(label="下载可视化HTML文件")
+                
+                with gr.Column():
+                    # 可视化图表显示区域
+                    viz_plot = gr.Plot(label="可视化图表")
     
+    # 绑定分析功能
     analyze_btn.click(
         fn=analyze_reviews,
         inputs=[
@@ -376,6 +308,13 @@ with gr.Blocks() as demo:
             template, need_translate, need_inspect, need_points_extract
         ],
         outputs=[progress, output_file]
+    )
+    
+    # 绑定可视化功能
+    viz_btn.click(
+        fn=create_visualization,
+        inputs=[viz_file_input],
+        outputs=[viz_status, viz_download, viz_plot]
     )
 
 if __name__ == "__main__":
