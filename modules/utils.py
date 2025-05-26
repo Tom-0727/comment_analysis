@@ -5,7 +5,7 @@ import pandas as pd
 def csv_enter(file_path, time_thre='2023-01-01'):
     df = pd.read_csv(file_path, sep=None, engine='python')
     print(df.columns)
-
+    df = df.rename(columns={'内容': '评论内容', '星级': '评分'})
     required_columns = ['评论内容', '评论时间', '评分']
     if not all(col in df.columns for col in required_columns):
         raise ValueError("DataFrame is missing one or more required columns: {}".format(required_columns))
