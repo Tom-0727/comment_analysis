@@ -45,9 +45,9 @@ def update_user_status(user_id, file_name, progress, total):
         'last_active': time.time()
     }
 
-def analyze_reviews(file, asin, model_type, api_key, product_type, template, 
+def analyze_reviews(file, model_type, api_key, product_type, template, 
                    need_translate, need_inspect, need_points_extract, progress=gr.Progress()):
-    if file is None and asin == "":
+    if file is None:
         return "请上传文件或输入 ASIN", None
 
     # 生成用户ID
@@ -61,10 +61,7 @@ def analyze_reviews(file, asin, model_type, api_key, product_type, template,
         output_csv = f"./buffer/{base_name}_analyzed.csv"
         output_xlsx = f"./buffer/{base_name}_analyzed.xlsx"
         file_name = base_name
-    else:
-        output_csv = f"./buffer/{asin}_analyzed.csv"
-        output_xlsx = f"./buffer/{asin}_analyzed.xlsx"
-        file_name = asin
+
 
     try:
         if file is not None:
@@ -219,11 +216,10 @@ with gr.Blocks() as demo:
         with gr.TabItem("评论分析"):
             with gr.Row():
                 with gr.Column():
-                    file_input = gr.File(label="上传文件")
-                    asin_input = gr.Textbox(label="ASIN")
+                    file_input = gr.File(label="上传文件*")
                     model_type = gr.Dropdown(
                         choices=["Qwen", "OpenAI", "API2D"],
-                        label="选择模型",
+                        label="选择模型*",
                         value="Qwen"
                     )
                     
@@ -236,7 +232,7 @@ with gr.Blocks() as demo:
                     
                     model_version = gr.Dropdown(
                         choices=model_versions["Qwen"],
-                        label="选择模型版本",
+                        label="选择模型版本*",
                         value=model_versions["Qwen"][0]
                     )
                     
@@ -253,22 +249,22 @@ with gr.Blocks() as demo:
                         outputs=[model_version]
                     )
                     
-                    api_key = gr.Textbox(label="API Key", type="password")
+                    api_key = gr.Textbox(label="API Key*", type="password")
                     product_type = gr.Dropdown(
                         choices=list(POINTS.keys()),
-                        label="选择产品类型",
+                        label="选择产品类型*",
                         value=list(POINTS.keys())[0]
                     )
                     template = gr.Dropdown(
                         choices=list(POINTS.keys()),
-                        label="提示词模板",
+                        label="提示词模板*",
                         value=list(POINTS.keys())[0]
                     )
                     # 增加一个提示，就是说以下每一个勾选了都会增加消耗和等待时间
-                    gr.Markdown("以下每一个勾选了都会增加消耗和等待时间，请谨慎勾选")
-                    need_translate = gr.Checkbox(label="需要大模型翻译", value=False)
-                    need_inspect = gr.Checkbox(label="需要大模型反审查", value=False)
-                    need_points_extract = gr.Checkbox(label="需要无监督体验点提取", value=False)
+                    gr.Markdown("以下每一个勾选了都会增加消耗和等待时间，请谨慎勾选（选填）")
+                    need_translate = gr.Checkbox(label="需要更精确的中文翻译（耗时大幅增加，真需要深度分析再选）", value=False)
+                    need_inspect = gr.Checkbox(label="需要大模型二次审查（耗时超大幅增加，相当于让大模型检查一遍提取的体验点是否有逻辑错误或幻觉，而且二次审查后需要人工再对二次审查发现错误的做人工修改，是一个追求更高准确度的操作）", value=False)
+                    need_points_extract = gr.Checkbox(label="需要无监督体验点提取（相当于不带体验点分类标准地去做好差评打标，这些体验点就是大模型看到评论有哪些方面的体验点就会提取出来）", value=False)
                     analyze_btn = gr.Button("开始分析")
                     progress = gr.Textbox(label="进度", lines=10)
                     output_file = gr.File(label="分析结果")
@@ -304,7 +300,7 @@ with gr.Blocks() as demo:
     analyze_btn.click(
         fn=analyze_reviews,
         inputs=[
-            file_input, asin_input, model_type, api_key, product_type,
+            file_input, model_type, api_key, product_type,
             template, need_translate, need_inspect, need_points_extract
         ],
         outputs=[progress, output_file]
