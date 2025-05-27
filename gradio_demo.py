@@ -275,24 +275,20 @@ with gr.Blocks() as demo:
             gr.Markdown("上传已分析的Excel文件来生成交互式可视化图表")
             
             with gr.Row():
-                with gr.Column():
+                with gr.Column(scale=1):
                     # 可视化文件上传
                     viz_file_input = gr.File(
                         label="上传Excel文件", 
                         file_types=[".xlsx"],
                         type="filepath"
                     )
-                    
                     # 可视化按钮
                     viz_btn = gr.Button("🎨 生成可视化", variant="primary")
-                    
                     # 可视化状态显示
                     viz_status = gr.Textbox(label="可视化状态", lines=5)
-                    
                     # HTML文件下载
                     viz_download = gr.File(label="下载可视化HTML文件")
-                
-                with gr.Column():
+                with gr.Column(scale=2):
                     # 可视化图表显示区域
                     viz_plot = gr.Plot(label="可视化图表")
     
