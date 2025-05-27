@@ -1,3 +1,6 @@
+'''
+文件说明：这里实现数据可视化的接口，包括数据可视化、数据分析等。
+'''
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots

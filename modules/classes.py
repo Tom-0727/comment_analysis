@@ -1,3 +1,6 @@
+'''
+文件说明：这里加载./modules/criterias/下的体验点分类标准，并加载到POINTS字典中。
+'''
 import pandas as pd
 
 

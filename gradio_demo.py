@@ -1,3 +1,6 @@
+'''
+文件说明：这里实现gradio的demo界面，包括评论分析、数据可视化等。
+'''
 import gradio as gr
 import pandas as pd
 import time
@@ -310,4 +313,4 @@ with gr.Blocks() as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch(share=False, server_name="0.0.0.0", server_port=7860)
+    demo.launch(share=True, server_name="0.0.0.0", server_port=7860)

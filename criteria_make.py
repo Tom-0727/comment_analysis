@@ -1,3 +1,6 @@
+'''
+文件说明：这里实现体验点分类标准聚类生成的算法实现。
+'''
 import os
 import re
 import ast
