@@ -173,4 +173,5 @@ openai_keys.yaml
 results/
 buffer/
 .DS_Store/
-docs/
+.gradio/
+visualizations/
