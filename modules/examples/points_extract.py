@@ -1,19 +1,6 @@
-
-
 POINTSEXT_DICT = {
-    "desk": '''
-Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; output={}
-Example2: comment="It's a great looking product once it is all put together. There are a lot of screws, so be careful when screwing the frame to the desk top panels to prevent screws penetrating through the panels. Double check the screw sizes."; output={'Aesthetics': 'great looking product', 'Number of Assembly Parts': 'a lot of screws'}''',
-    "standing_desk": '''
-Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; output={}
-Example2: comment="It's a great looking product once it is all put together. There are a lot of screws, so be careful when screwing the frame to the desk top panels to prevent screws penetrating through the panels. Double check the screw sizes."; output={'Aesthetics': 'great looking product', 'Number of Assembly Parts': 'a lot of screws'}''',
-    "banshi_desk": '''
-Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; output={}
-Example2: comment="It's a great looking product once it is all put together. There are a lot of screws, so be careful when screwing the frame to the desk top panels to prevent screws penetrating through the panels. Double check the screw sizes."; output={'Aesthetics': 'great looking product', 'Number of Assembly Parts': 'a lot of screws'}''',
-    "gangmu_desk": '''
-Example1: comment="Wonderful desk! Wonderful people to work with. Thank you"; output={}
-Example2: comment="It's a great looking product once it is all put together. There are a lot of screws, so be careful when screwing the frame to the desk top panels to prevent screws penetrating through the panels. Double check the screw sizes."; output={'Aesthetics': 'great looking product', 'Number of Assembly Parts': 'a lot of screws'}''',
-    "ceiling_fan": '''
-Example1: comment="Good fan! Lets go!"; output={}
-Example2: comment="Classy exciting fan to turn heads!"; output={'Style & Appearance': 'Classy exciting fan'}''',
+    "mock": '''
+Example1: comment="This is a great product! I love it!"; output={}
+Example2: comment="The quality is good but the price is a bit high. The design is beautiful."; output={'Quality': 'good', 'Price': 'high', 'Design': 'beautiful'}
+Example3: comment="Not worth the money. The material is poor and it's difficult to assemble. However, the color is nice."; output={'Value': 'not worth', 'Material': 'poor', 'Assembly': 'difficult', 'Color': 'nice'}'''
 }

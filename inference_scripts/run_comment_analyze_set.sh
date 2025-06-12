@@ -1,7 +1,7 @@
 # bash ./inference_scripts/run_comment_analyze.sh
 # arch: openai, qwen, api2d
-folder_path="./buffer/卧室扇listing分析评论/"
-save_path="./buffer/ceiling_fan_set/"
+folder_path=""
+save_path=""
 
 mkdir -p "$save_path"
 
